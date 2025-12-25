@@ -35,6 +35,42 @@ def reset_activities():
             "schedule": "Mondays, Wednesdays, Fridays, 2:00 PM - 3:00 PM",
             "max_participants": 30,
             "participants": ["john@mergington.edu", "olivia@mergington.edu"]
+        },
+        "Basketball Team": {
+            "description": "Competitive basketball training and games",
+            "schedule": "Tuesdays and Thursdays, 4:00 PM - 6:00 PM",
+            "max_participants": 15,
+            "participants": []
+        },
+        "Swimming Club": {
+            "description": "Swimming training and water sports",
+            "schedule": "Mondays and Wednesdays, 3:30 PM - 5:00 PM",
+            "max_participants": 20,
+            "participants": []
+        },
+        "Art Studio": {
+            "description": "Express creativity through painting and drawing",
+            "schedule": "Wednesdays, 3:30 PM - 5:00 PM",
+            "max_participants": 15,
+            "participants": []
+        },
+        "Drama Club": {
+            "description": "Theater arts and performance training",
+            "schedule": "Tuesdays, 4:00 PM - 6:00 PM",
+            "max_participants": 25,
+            "participants": []
+        },
+        "Debate Team": {
+            "description": "Learn public speaking and argumentation skills",
+            "schedule": "Thursdays, 3:30 PM - 5:00 PM",
+            "max_participants": 16,
+            "participants": []
+        },
+        "Science Club": {
+            "description": "Hands-on experiments and scientific exploration",
+            "schedule": "Fridays, 3:30 PM - 5:00 PM",
+            "max_participants": 20,
+            "participants": []
         }
     }
     
@@ -174,3 +210,25 @@ def test_participants_list_is_list_type(client):
     for activity_name, activity_data in data.items():
         assert isinstance(activity_data["participants"], list), \
             f"{activity_name} participants is not a list"
+
+
+def test_duplicate_signup_prevention(client):
+    """Test that a student cannot sign up twice for the same activity"""
+    email = "duplicate@mergington.edu"
+    
+    # First signup should succeed
+    response1 = client.post(
+        "/activities/Chess Club/signup",
+        params={"email": email}
+    )
+    assert response1.status_code == 200
+    
+    # Second signup should fail
+    response2 = client.post(
+        "/activities/Chess Club/signup",
+        params={"email": email}
+    )
+    assert response2.status_code == 400
+    data = response2.json()
+    assert "detail" in data
+    assert "already signed up" in data["detail"].lower()
