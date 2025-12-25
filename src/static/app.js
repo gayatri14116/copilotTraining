@@ -4,40 +4,75 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
-  // Function to fetch activities from API
-  async function fetchActivities() {
+  // Load activities when page loads
+  loadActivities();
+  loadActivityOptions();
+
+  // Fetch and display activities
+  async function loadActivities() {
     try {
       const response = await fetch("/activities");
       const activities = await response.json();
 
-      // Clear loading message
       activitiesList.innerHTML = "";
 
-      // Populate activities list
-      Object.entries(activities).forEach(([name, details]) => {
-        const activityCard = document.createElement("div");
-        activityCard.className = "activity-card";
+      for (const [name, details] of Object.entries(activities)) {
+        const card = createActivityCard(name, details);
+        activitiesList.appendChild(card);
+      }
+    } catch (error) {
+      console.error("Error loading activities:", error);
+      activitiesList.innerHTML =
+        '<p class="error">Failed to load activities. Please try again later.</p>';
+    }
+  }
 
-        const spotsLeft = details.max_participants - details.participants.length;
+  // Create an activity card with participants list
+  function createActivityCard(name, details) {
+    const card = document.createElement("div");
+    card.className = "activity-card";
 
-        activityCard.innerHTML = `
-          <h4>${name}</h4>
-          <p>${details.description}</p>
-          <p><strong>Schedule:</strong> ${details.schedule}</p>
-          <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
-        `;
+    const spotsLeft = details.max_participants - details.participants.length;
 
-        activitiesList.appendChild(activityCard);
+    // Build participants list HTML
+    let participantsHTML = '<div class="participants"><h5>Participants:</h5>';
+    if (details.participants.length > 0) {
+      participantsHTML += "<ul>";
+      details.participants.forEach((email) => {
+        participantsHTML += `<li>${email}</li>`;
+      });
+      participantsHTML += "</ul>";
+    } else {
+      participantsHTML +=
+        '<ul><li class="no-participants">No participants yet</li></ul>';
+    }
+    participantsHTML += "</div>";
 
-        // Add option to select dropdown
+    card.innerHTML = `
+    <h4>${name}</h4>
+    <p><strong>Description:</strong> ${details.description}</p>
+    <p><strong>Schedule:</strong> ${details.schedule}</p>
+    <p><strong>Spots available:</strong> ${spotsLeft} / ${details.max_participants}</p>
+    ${participantsHTML}
+  `;
+
+    return card;
+  }
+
+  // Load activity options for the dropdown
+  async function loadActivityOptions() {
+    try {
+      const response = await fetch("/activities");
+      const activities = await response.json();
+
+      for (const name of Object.keys(activities)) {
         const option = document.createElement("option");
         option.value = name;
         option.textContent = name;
         activitySelect.appendChild(option);
-      });
+      }
     } catch (error) {
-      activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
-      console.error("Error fetching activities:", error);
+      console.error("Error loading activity options:", error);
     }
   }
 
@@ -50,7 +85,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const response = await fetch(
-        `/activities/${encodeURIComponent(activity)}/signup?email=${encodeURIComponent(email)}`,
+        `/activities/${encodeURIComponent(activity)}/signup?email=${encodeURIComponent(
+          email
+        )}`,
         {
           method: "POST",
         }
@@ -62,6 +99,9 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+
+        // Reload activities to show updated participants
+        loadActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
@@ -80,7 +120,4 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error signing up:", error);
     }
   });
-
-  // Initialize app
-  fetchActivities();
 });
